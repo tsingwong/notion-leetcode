@@ -1,0 +1,118 @@
+<template>
+  <div>
+    <div>
+      <a-space text="center">
+        <a-select
+          v-model:value="state.value"
+          label-in-value
+          show-search
+          placeholder="Select users"
+          w="80"
+          :filter-option="false"
+          :not-found-content="state.fetching ? undefined : null"
+          :options="state.data"
+          @search="fetchQuestionList"
+        >
+          <template v-if="state.fetching" #notFoundContent>
+            <a-spin size="small" />
+          </template>
+        </a-select>
+
+        <a-button type="primary" :loading="false" @click="fetchQuestionData">Loading</a-button>
+      </a-space>
+    </div>
+
+    <div>
+      <template v-if="isDefined(questionInfo)">
+        <div m="t-10">
+          <a-space id="status">
+            <a-tag color="red" v-if="questionInfo.difficulty === 'Hard'">Hard</a-tag>
+            <a-tag color="orange" v-else-if="questionInfo.difficulty === 'Medium'">Medium</a-tag>
+            <a-tag color="green" v-else>Easy</a-tag>
+            <span> likes: {{ questionInfo.likes }}</span>
+            <a-switch v-model:checked="languageIsChinese" checked-children="中" un-checked-children="英" />
+          </a-space>
+        </div>
+
+        <p>
+          {{ questionInfo.questionFrontendId }}.
+          {{ languageIsChinese ? questionInfo.translatedTitle : questionInfo.title }}
+        </p>
+        <div bg="gray-300" p="10" pos="relative">
+          <a-space pos="absolute right-10 top-5">
+            <span cursor="pointer" @click="codeStatus = 'preview'">preview</span>
+            |
+            <span cursor="pointer" @click="codeStatus = 'code'">code</span>
+            |
+            <span cursor="pointer">copy</span>
+          </a-space>
+          <div
+            text="left"
+            v-if="codeStatus === 'preview'"
+            v-html="languageIsChinese ? questionInfo.translatedContent : questionInfo.content"
+          ></div>
+          <div v-else text="left" whitespace="pre-line">
+            {{ prettify(languageIsChinese ? questionInfo.translatedContent : questionInfo.content) }}
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+</template>
+<script setup lang="ts">
+  import prettify from "html-prettify"
+  const state = reactive({
+    data: [],
+    value: undefined,
+    fetching: false,
+  })
+
+  const questionInfo = useState<Record<string, any> | undefined>("questionInfo", () => undefined)
+  const languageIsChinese = useState("languageIsChinese", () => true)
+  const codeStatus = useState<"preview" | "code">("codeStatus", () => "preview")
+
+  const fetchQuestionList = useDebounceFn(async (val: string) => {
+    const n = Number(val)
+    state.data = []
+    state.fetching = true
+    let res
+    if (isNaN(n)) {
+      res = await useSearch({
+        search: val,
+      })
+    } else {
+      res = await useSearch({
+        id: n,
+      })
+    }
+    if (res.value.data.problemsetQuestionList.questions.length > 0) {
+      state.data = res.value.data.problemsetQuestionList.questions.map((question) => {
+        question.value = question.frontendQuestionId
+        question.label = question.titleCn
+        return question
+      })
+    } else {
+      state.data = []
+    }
+
+    state.fetching = false
+  }, 1000)
+
+  const fetchQuestionData = useThrottleFn(async () => {
+    if (!state?.value?.option?.titleSlug) {
+      console.log("22")
+      return
+    }
+    const res = await useQuestionData(state.value.option.titleSlug)
+    console.log(res.value)
+    questionInfo.value = res.value.data.question || {}
+  }, 1000)
+
+  watch(
+    () => state.value,
+    () => {
+      state.data = []
+      state.fetching = false
+    },
+  )
+</script>

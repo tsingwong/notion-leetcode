@@ -1,0 +1,19 @@
+{
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview"
+  },
+  "devDependencies": {
+    "@vueuse/nuxt": "^8.9.4",
+    "nuxt": "3.0.0-rc.6",
+    "unplugin-vue-components": "^0.21.1"
+  },
+  "dependencies": {
+    "@unocss/nuxt": "^0.44.5",
+    "ant-design-vue": "^3.2.10",
+    "html-prettify": "^1.0.7"
+  }
+}
