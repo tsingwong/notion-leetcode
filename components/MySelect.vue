@@ -60,7 +60,12 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { notification } from "ant-design-vue"
+  import "ant-design-vue/es/notification/style/css"
   import prettify from "html-prettify"
+  import { useStorage } from "@vueuse/core"
+
+  const notificationFlag = useStorage("notificationFlag", false)
   const state = reactive({
     data: [],
     value: undefined,
@@ -107,6 +112,17 @@
     console.log(res.value)
     questionInfo.value = res.value.data.question || {}
   }, 1000)
+
+  if (process.client && !unref(notificationFlag)) {
+    notification.open({
+      message: "提示",
+      description: "当前支持搜索 ID 和关键词",
+      onClick: () => {
+        notificationFlag.value = true
+      },
+      duration: 0,
+    })
+  }
 
   watch(
     () => state.value,
