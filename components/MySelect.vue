@@ -22,9 +22,9 @@
       </a-space>
     </div>
 
-    <div>
+    <div m="t-5">
       <template v-if="isDefined(questionInfo)">
-        <div m="t-10">
+        <div>
           <a-space id="status">
             <a-tag color="red" v-if="questionInfo.difficulty === 'Hard'">Hard</a-tag>
             <a-tag color="orange" v-else-if="questionInfo.difficulty === 'Medium'">Medium</a-tag>
@@ -38,20 +38,26 @@
           {{ questionInfo.questionFrontendId }}.
           {{ languageIsChinese ? questionInfo.translatedTitle : questionInfo.title }}
         </p>
-        <div bg="gray-300" p="10" pos="relative">
+        <a-tooltip placement="right">
+          <template #title> 点击复制连接 </template>
+          <span cursor="pointer" @click="copyLink">{{ link }}</span>
+        </a-tooltip>
+        <div bg="gray-300" m="t-5" p="10" pos="relative">
           <a-space pos="absolute right-10 top-5">
             <span cursor="pointer" @click="codeStatus = 'preview'">preview</span>
             |
             <span cursor="pointer" @click="codeStatus = 'code'">code</span>
             |
-            <span cursor="pointer">copy</span>
+            <span cursor="pointer" @click="copyHTML">copy</span>
           </a-space>
+
           <div
             text="left"
+            ref="sourceCode"
             v-if="codeStatus === 'preview'"
             v-html="languageIsChinese ? questionInfo.translatedContent : questionInfo.content"
           ></div>
-          <div v-else text="left" whitespace="pre-line">
+          <div v-else text="left" whitespace="pre-line" ref="sourceCode">
             {{ prettify(languageIsChinese ? questionInfo.translatedContent : questionInfo.content) }}
           </div>
         </div>
@@ -71,6 +77,7 @@
     value: undefined,
     fetching: false,
   })
+  const sourceCode = ref(null)
 
   const questionInfo = useState<Record<string, any> | undefined>("questionInfo", () => undefined)
   const languageIsChinese = useState("languageIsChinese", () => true)
@@ -105,7 +112,6 @@
 
   const fetchQuestionData = useThrottleFn(async () => {
     if (!state?.value?.option?.titleSlug) {
-      console.log("22")
       return
     }
     const res = await useQuestionData(state.value.option.titleSlug)
@@ -131,4 +137,34 @@
       state.fetching = false
     },
   )
+  const link = computed(() => {
+    if (!questionInfo.value.titleSlug) {
+      return ""
+    }
+    return `https://leetcode.cn/problems/${questionInfo.value.titleSlug}`
+  })
+  const copyLink = async () => {
+    await navigator.clipboard.writeText(link.value)
+    notification.success({
+      message: "",
+      description: "复制成功",
+      duration: 1,
+    })
+  }
+
+  const copyHTML = async () => {
+    console.log(sourceCode.value)
+    const range = document.createRange()
+    range.selectNode(sourceCode.value)
+    const selection = window.getSelection()
+    selection.removeAllRanges()
+    selection.addRange(range)
+    document.execCommand("copy")
+    selection.removeAllRanges()
+    notification.success({
+      message: "",
+      description: "复制成功",
+      duration: 1,
+    })
+  }
 </script>
